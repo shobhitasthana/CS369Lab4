@@ -4,6 +4,10 @@
 
 import sys
 import string
+import pymongo
+
+from pymongo import MongoClient
+
 
 def parse_auth_file(filename):
 	with open(filename, 'r') as f:
@@ -18,8 +22,20 @@ def parse_auth_file(filename):
 		res_dict[key] = value
 	return res_dict
 
-def main():
-	auth_dict = parse_auth_file(sys.argv[1])
+def connect_client(auth_dict):
+    client = MongoClient()
+    user = auth_dict['username']
+    password = auth_dict['password']
+    authdb = auth_dict['authDB']
+    db = auth_dict['db']
 
+    client.csc369users.authenticate(user, password)
+
+
+
+def main():
+    auth_dict = parse_auth_file(sys.argv[1])
+    print(auth_dict)
+    connect_client(auth_dict)
 main()
 
