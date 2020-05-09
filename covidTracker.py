@@ -56,7 +56,7 @@ def load_daily():
     resp = requests.get(api_url)
     if resp.status_code == 200:
         daily_json = json.loads(resp.content.decode('utf-8'))
-        daily_json = reformat_daily_dates(daily_json)
+        #daily_json = reformat_daily_dates(daily_json)
         return daily_json
     else:
         print("Failed to reach covid daily endpoint, please try again soon.")
@@ -103,6 +103,7 @@ def update_collection(client, database, collection, json):
 def main():
     try:
         auth_dict = parse_auth_file(sys.argv[1])
+        config_dict = parse_config_file(sys.argv[2])
     except IndexError as i:
         print("Must specify database credentials")
         return
@@ -141,7 +142,7 @@ def query_generator(database, client, config_dict):
     collection = db[config_dict['collection']]
     time = config_dict['time']
     agg_pipeline = []
-
+    print(collection)
     time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}}, 
         'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$month": {"date": {"$gte": month,"$lte": today}}}}
     time_pipe = {}
@@ -155,7 +156,8 @@ def query_generator(database, client, config_dict):
     
     print(time_pipe) 
     agg_pipeline.append(time_pipe)
-    #db.command('aggregate',collection, pipeline= agg_pipeline)
+    #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
+    #pprint.pprint(list(result))
     pprint.pprint(list(db.covid.aggregate(agg_pipeline)))
 
 
