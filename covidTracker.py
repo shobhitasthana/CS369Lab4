@@ -23,19 +23,31 @@ def parse_auth_file(filename):
 	return res_dict
 
 def connect_client(auth_dict):
-    client = MongoClient()
-    user = auth_dict['username']
-    password = auth_dict['password']
-    authdb = auth_dict['authDB']
-    db = auth_dict['db']
+	server = auth_dict['server']
+	user = auth_dict['username']
+	password = auth_dict['password']
+	authdb = auth_dict['authDB']
+	db = auth_dict['db']
+	client = MongoClient(server, username=user, password=password, authSource=authdb)
+	return client
 
-    client.csc369users.authenticate(user, password)
+def load_data(database, client):
+	db = client[database]
+	db.list_collection_names()
 
 
 
 def main():
-    auth_dict = parse_auth_file(sys.argv[1])
-    print(auth_dict)
-    connect_client(auth_dict)
-main()
+	try:
+		auth_dict = parse_auth_file(sys.argv[1])
+	except IndexError as i:
+		print("Must specify database credentials")
+		return
+	
+	mongo_client = connect_client(auth_dict)
+	load_data(auth_dict['db'], mongo_client)
+
+
+if __name__ == "__main__":
+	main()
 
