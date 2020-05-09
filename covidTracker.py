@@ -5,9 +5,11 @@
 import sys
 import string
 import pymongo
-
+import json
 from pymongo import MongoClient
-
+from datetime import datetime, timedelta
+from bson.son import SON
+import pprint
 
 def parse_auth_file(filename):
 	with open(filename, 'r') as f:
@@ -55,17 +57,59 @@ def load_data(database, client):
         collection = db.test
         print("true")
 
+def parse_config_file(filename):
+    with open(filename) as json_file:
+        data = json.load(json_file)
+    print(data)
 
+    #collection = data['collection']
+
+    return data
+def query_generator(database, client, config_dict):
+    db = client[database]
+    #whether to refresh collection
+    if config_dict['refresh']:
+        print("Call function to refresh collections")
+    #get today's date formatted in YYYYMMDD
+    today = int(datetime.now().strftime("%Y%m%d"))
+    yesterday = int((datetime.now() - timedelta(days = 1)).strftime("%Y%m%d"))
+    #finds date exactly 1 week before today
+    week = int((datetime.now() - timedelta(days = 7)).strftime("%Y%m%d"))
+    month = int(str(today)[:6] + "01")
+    #print(month)
+    #print(today,yesterday)
+    #print(int(today))
+
+    collection = db[config_dict['collection']]
+    time = config_dict['time']
+    agg_pipeline = []
+
+    time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}}, 
+        'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$month": {"date": {"$gte": month,"$lte": today}}}}
+    time_pipe = {}
+    #creates time match pipe
+    if not isinstance(time,dict):
+        time_pipe = time_dict[config_dict['time']]
+    else:
+        start = time['start']
+        end = time['end']
+        time_pipe = {"$match": {"date": {"$gte": start, "$lte": end}}}
+    
+    print(time_pipe) 
+    agg_pipeline.append(time_pipe)
+    #db.command('aggregate',collection, pipeline= agg_pipeline)
+    pprint.pprint(list(db.covid.aggregate(agg_pipeline)))
 def main():
-	try:
-		auth_dict = parse_auth_file(sys.argv[1])
-	except IndexError as i:
-		print("Must specify database credentials")
-		return
-	
-	mongo_client = connect_client(auth_dict)
-	load_data(auth_dict['db'], mongo_client)
+        try:
+                auth_dict = parse_auth_file(sys.argv[1])
+                config_dict = parse_config_file(sys.argv[2])
+        except IndexError as i:
+                print("Must specify database credentials")
+                return
 
+        mongo_client = connect_client(auth_dict)
+        load_data(auth_dict['db'], mongo_client)
+        query_generator(auth_dict['db'],mongo_client,config_dict)
 
 if __name__ == "__main__":
 	main()
