@@ -23,18 +23,23 @@ def parse_auth_file(filename):
 	return res_dict
 
 def connect_client(auth_dict):
-	server = auth_dict['server']
-	user = auth_dict['username']
-	password = auth_dict['password']
-	authdb = auth_dict['authDB']
-	db = auth_dict['db']
-	client = MongoClient(server, username=user, password=password, authSource=authdb)
-	return client
+        server = auth_dict['server']
+        user = auth_dict['username']
+        password = auth_dict['password']
+        authdb = auth_dict['authDB']
+        db = auth_dict['db']
+        uri = 'mongodb://robot19:changeme@localhost:27017/csc369robots'
+        client = MongoClient(uri)
+
+        #client = MongoClient(server, username=user, password=password, authSource=authdb, authMechanism='SCRAM-SHA-1')
+        print("database authenticated")
+        return client
 
 def load_data(database, client):
-	db = client[database]
-	db.list_collection_names()
-
+        db = client.robot19
+        db.list_collection_names()
+        collection = db.test
+        print("true")
 
 
 def main():
