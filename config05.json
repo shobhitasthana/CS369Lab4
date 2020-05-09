@@ -1,0 +1,16 @@
+{"refresh": false,
+ "collection": "states",
+ "aggregation": "county",
+ "target": "IA",
+ "counties": ["Polk", "Scott"],
+ "time": "month",
+ "analysis": [{"task": {"track": "positive"},
+              "output":{"graph": {"type": "scatter",
+                              "legend":"on",
+                              "combo": "split",
+                              "title": "Covid Cases this month"
+                             }
+                       }
+              }]
+ }             
+

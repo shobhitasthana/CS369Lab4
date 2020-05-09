@@ -1,0 +1,24 @@
+{"refresh": true,
+ "collection": "covid",
+ "aggregation": "state",
+ "target": ["CA","NY","WA"],
+ "time": "week",
+ "analysis":[{"task": {"ratio": {"numerator": "death",
+                                   "denominator": "positive"}},
+              "output": {"graph":{ "type": "line",
+                               "legend":"off",
+                               "combo":"combine",
+                               "title": "Death to Positive ratios this week"},
+                       "table":{"row": "state",
+                               "column": "time"
+                              }
+                       }
+              },
+              {"task": {"stats": ["death", "positive"]},
+               "output":{"table": {"row": "stats",
+                                   "column":"state"}
+                        }
+               }
+             ]
+     }
+

@@ -1,0 +1,17 @@
+{"refresh": true,
+ "collection": "covid",
+ "aggregation": "usa",
+ "time": "month",
+ "analysis": [{"task": {"track": "positive"},
+              "output": {"graph":{ "type": "line",
+                                   "legend":"off",
+                                   "combo":"combine"},
+                       "table":{"row": "state",
+                              "column": "time",
+                              "title": "COVID cases in the USA this month"
+                              }
+                       }
+              }
+             ]
+           }
+

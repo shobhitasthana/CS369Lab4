@@ -1,0 +1,17 @@
+{"refresh": false,
+ "collection": "covid",
+ "aggregation": "usa",
+ "target": ["CA", "WA", "OR"],
+ "time": "month",
+ "analysis": [{"task": { "track": "death"},
+               "output": {"table":{ "row":"time",
+                                   "column":"state",
+                                   "title":"West Coast Deaths This Month"},
+                          "graph":{"type":"bar",
+                                   "legend": "off",
+                                   "title": "West Coast Deaths This Month"}
+              }
+             ],
+ "output": "westCoast.html"
+     }
+

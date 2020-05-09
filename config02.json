@@ -1,0 +1,12 @@
+{"refresh": true,
+ "collection": "covid",
+ "aggregation": "state",
+ "target": "CA",
+ "analysis": [{"task": {"track": "death"},
+              "output": {"table":{ "row": "state",
+                                   "column":"time",
+                                    "title":"COVID deaths in California over time"}
+                        }
+              }
+             ]           
+}

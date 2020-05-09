@@ -1,0 +1,13 @@
+{"refresh": true,
+ "collection": "covid",
+ "aggregation": "fiftyStates",
+ "time": "today",
+ "analysis": [{"task": { "track": "positive"},
+               "output": {"table":{ "row":"time",
+                                   "column":"state",
+                                   "title":"Today in USA"}}
+              }
+             ],
+ "output": "tracking07.html"
+     }
+
