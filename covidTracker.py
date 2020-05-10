@@ -190,7 +190,7 @@ def main():
     print("returned from reading files")
     mongo_client = connect_client(auth_dict)
     refresh_collection(auth_dict, config_dict, mongo_client)
-    #query_generator(auth_dict['db'], mongo_client, config_dict)
+    task_manager(auth_dict['db'], mongo_client, config_dict)
 
 def refresh_collection(auth_dict, config_dict, mongo_client):
     json = None
@@ -210,28 +210,20 @@ def parse_json_file(filename):
     print(data)
     return data
 
-def pipeline_generator(database, client, config_dict):
-    db = client[database]
-    #whether to refresh collection
-    if config_dict['refresh']:
-        print("Call function to refresh collections")
-    collection = db[config_dict['collection']]
+def pipeline_generator(config_dict):
     agg_pipeline = []
     if 'time' in config_dict.keys():
         time_pipe = create_time_query(config_dict)
         agg_pipeline.append(time_pipe)
     if 'target' in config_dict.keys():
-        
         target_pipe = create_target_query(config_dict)
         agg_pipeline.append(target_pipe)
-
     if 'counties' in config_dict.keys():
         counties_pipe = create_counties_query(config_dict)
         agg_pipeline.append(counties_pipe)
     #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
     #pprint.pprint(list(result))
-    print(agg_pipeline)
-    pprint.pprint(list(collection.aggregate(agg_pipeline)))
+    return agg_pipeline
 
 def create_time_query(config_dict):
     time = config_dict['time']
@@ -285,11 +277,12 @@ def create_counties_query(config_dict):
             counties_pipe = {"$match": {"county": counties}}
         return counties_pipe
 
-def create_aggregation_query(config_dict):
+def create_aggregation_query(config_dict, task):
     agg_level = config_dict["aggreation"]
     if agg_level == "usa":
         #no filter
         #group all observations into 1 result
+        pass
     if agg_level == "fiftyStates":
         #filter to only 50 states + DC 
         #exclude 'American Samoa': 'AS','Guam': 'GU', 'Northern Mariana Islands':'MP', 'Puerto Rico': 'PR', 'Virgin Islands': 'VI'
@@ -298,24 +291,28 @@ def create_aggregation_query(config_dict):
     elif agg_level == "state":
         #filter will be hanled by state target query
         #group by state
+        pass
     elif agg_level == "county":
         #filter will be handled by counties query
         #group by state, fips
+        pass
 
-def task_manager(config_dict):
+def task_manager(database, client, config_dict):
     # approach: break down task field into number of pipelines and outputs
     num_tasks = len(config_dict['analysis'])
+    db = client[database]
+    collection = db[config_dict['collection']]
     '''
     similar to case/switch. these subfunctions will be used by calling task(job). For example
     take a task to be {'ratio': {'numerator': 'death', 'denominator': 'positive'}}}. Then when we call the function
     of the task's key name ie. ratio(task), it would call the ratio() function and would return the appropriate
     query. Things might get weird depending on aggregration. 
     '''
-
+    
     def ratio(task):
         numerator = "$"+task['ratio']['numerator']
         denominator = "$"+task['ratio']['denominator']
-        pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
+        project_pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
         return pipe
     def track(task):
         return
@@ -323,8 +320,9 @@ def task_manager(config_dict):
         return
 
     for job in config_dict['analysis']:
-        pipe = {}
-        
+        pipeline = pipeline_generator(config_dict)
+        print(pipeline)
+        pprint.pprint(list(collection.aggregate(pipeline)))
         task = list(job['task'].keys())[0]
 
 
