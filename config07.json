@@ -10,7 +10,7 @@
                           "graph":{"type":"bar",
                                    "legend": "off",
                                    "title": "West Coast Deaths This Month"}
-              }
+	       }}
              ],
  "output": "westCoast.html"
      }
