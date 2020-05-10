@@ -30,6 +30,7 @@ def parse_auth_file(filename):
 def connect_client(auth_dict):
     if 'server' in auth_dict.keys():
         server = auth_dict['server'] + ":27017"
+        print("server_verified")
     else:
         server = 'localhost:27017'
         
@@ -131,11 +132,15 @@ def pipeline_generator(database, client, config_dict):
         print("Call function to refresh collections")
     collection = db[config_dict['collection']]
     agg_pipeline = []
-    time_pipe = create_time_query(config_dict)
-
-    agg_pipeline.append(time_pipe)
+    if 'time' in config_dict.keys():
+        time_pipe = create_time_query(config_dict)
+        agg_pipeline.append(time_pipe)
+    target_pipe = create_target_query(config_dict)
+    agg_pipeline.append(target_pipe)
+    
     #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
     #pprint.pprint(list(result))
+    print(agg_pipeline)
     pprint.pprint(list(collection.aggregate(agg_pipeline)))
 
 def create_time_query(config_dict):
@@ -146,17 +151,37 @@ def create_time_query(config_dict):
     week = int((datetime.now() - timedelta(days = 7)).strftime("%Y%m%d"))
     month = int(str(today)[:6] + "01")
     time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}},
-        'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$month": {"date": {"$gte": month,"$lte": today}}}}
+        'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$match": {"date": {"$gte": month,"$lte": today}}}}
     time_pipe = {}
+    
     #creates time match pipe
     if not isinstance(time,dict):
         time_pipe = time_dict[config_dict['time']]
     else:
+        #case when time gives start and end dates
         start = time['start']
         end = time['end']
         time_pipe = {"$match": {"date": {"$gte": start, "$lte": end}}}
 
     return time_pipe
+def create_target_query(config_dict):
+    #states collection will only contain a single state abbreviation
+    target_pipe = {}
+    state = config_dict['target']
+    if config_dict['collection'] == 'states':
+        
+        target_pipe = {"$match": {"state": state}}
+        return target_pipe
+    else:
+        # collection is covid
+        # can be either single state abbreviation or list 
+        if isinstance(state, list):
+            target_pipe = {"$match": {"state": {"$in": state}}}
+        else:
+            target_pipe = {"$match": {"state": state}}
+    return target_pipe
+
+
 if __name__ == "__main__":
 	main()
 
