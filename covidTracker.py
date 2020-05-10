@@ -284,7 +284,7 @@ def create_counties_query(config_dict):
         else:
             counties_pipe = {"$match": {"county": counties}}
         return counties_pipe
-
+'''
 def create_aggregation_query(config_dict):
     agg_level = config_dict["aggreation"]
     if agg_level == "usa":
@@ -301,7 +301,7 @@ def create_aggregation_query(config_dict):
     elif agg_level == "county":
         #filter will be handled by counties query
         #group by state, fips
-
+'''
 def task_manager(config_dict):
     # approach: break down task field into number of pipelines and outputs
     num_tasks = len(config_dict['analysis'])
@@ -315,17 +315,22 @@ def task_manager(config_dict):
     def ratio(task):
         numerator = "$"+task['ratio']['numerator']
         denominator = "$"+task['ratio']['denominator']
-        pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
+        pipe = {"$project": {"_id": 0,"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
         return pipe
     def track(task):
-        return
+        field = task['track']
+        pipe = {"$project": {"_id": 0, field: 1, "date": 1}}
+        return pipe
     def stats(task):
+        # depends on aggregation level but would require a group operation with avg and std aggregate functions.
         return
-
+    task_dict = {'ratio': ratio, 'track': track, 'stats': stats}
     for job in config_dict['analysis']:
-        pipe = {}
-        
-        task = list(job['task'].keys())[0]
+             
+        task_name = list(job['task'].keys())[0]
+        # call task subfunctions
+        pipe = task_dict[task_name](job['task'])
+
 
 
 if __name__ == "__main__":
