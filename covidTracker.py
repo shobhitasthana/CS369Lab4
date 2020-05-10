@@ -135,9 +135,14 @@ def pipeline_generator(database, client, config_dict):
     if 'time' in config_dict.keys():
         time_pipe = create_time_query(config_dict)
         agg_pipeline.append(time_pipe)
-    target_pipe = create_target_query(config_dict)
-    agg_pipeline.append(target_pipe)
-    
+    if 'target' in config_dict.keys():
+        
+        target_pipe = create_target_query(config_dict)
+        agg_pipeline.append(target_pipe)
+
+    if 'counties' in config_dict.keys():
+        counties_pipe = create_counties_query(config_dict)
+        agg_pipeline.append(counties_pipe)
     #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
     #pprint.pprint(list(result))
     print(agg_pipeline)
@@ -180,6 +185,21 @@ def create_target_query(config_dict):
         else:
             target_pipe = {"$match": {"state": state}}
     return target_pipe
+
+def create_counties_query(config_dict):
+    #filter only applicable to states collection
+    
+    if config_dict['collection'] != 'states':
+        return
+    else:
+        counties_pipe = {}
+        counties = config_dict['counties']
+        if isinstance(counties, list):
+            counties_pipe = {"$match": {"county": {"$in": counties}}}
+        else:
+            counties_pipe = {"$match": {"county": counties}}
+        return counties_pipe
+
 
 
 if __name__ == "__main__":
