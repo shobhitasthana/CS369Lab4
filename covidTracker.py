@@ -115,7 +115,7 @@ def main():
         update_collection(mongo_client, auth_dict['db'], 'covid', daily_json)
     if state_json != None:
         update_collection(mongo_client, auth_dict['db'], 'states', state_json)
-    query_generator(auth_dict['db'],mongo_client,config_dict)
+    pipeline_generator(auth_dict['db'],mongo_client,config_dict)
 
 def parse_config_file(filename):
     with open(filename) as json_file:
@@ -124,26 +124,28 @@ def parse_config_file(filename):
     #collection = data['collection']
     return data
 
-def query_generator(database, client, config_dict):
+def pipeline_generator(database, client, config_dict):
     db = client[database]
     #whether to refresh collection
     if config_dict['refresh']:
         print("Call function to refresh collections")
-    #get today's date formatted in YYYYMMDD
+    collection = db[config_dict['collection']]
+    agg_pipeline = []
+    time_pipe = create_time_query(config_dict)
+
+    agg_pipeline.append(time_pipe)
+    #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
+    #pprint.pprint(list(result))
+    pprint.pprint(list(collection.aggregate(agg_pipeline)))
+
+def create_time_query(config_dict):
+    time = config_dict['time']
     today = int(datetime.now().strftime("%Y%m%d"))
     yesterday = int((datetime.now() - timedelta(days = 1)).strftime("%Y%m%d"))
     #finds date exactly 1 week before today
     week = int((datetime.now() - timedelta(days = 7)).strftime("%Y%m%d"))
     month = int(str(today)[:6] + "01")
-    #print(month)
-    #print(today,yesterday)
-    #print(int(today))
-
-    collection = db[config_dict['collection']]
-    time = config_dict['time']
-    agg_pipeline = []
-    print(collection)
-    time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}}, 
+    time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}},
         'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$month": {"date": {"$gte": month,"$lte": today}}}}
     time_pipe = {}
     #creates time match pipe
@@ -153,15 +155,8 @@ def query_generator(database, client, config_dict):
         start = time['start']
         end = time['end']
         time_pipe = {"$match": {"date": {"$gte": start, "$lte": end}}}
-    
-    print(time_pipe) 
-    agg_pipeline.append(time_pipe)
-    #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
-    #pprint.pprint(list(result))
-    pprint.pprint(list(db.covid.aggregate(agg_pipeline)))
 
-
-
+    return time_pipe
 if __name__ == "__main__":
 	main()
 
