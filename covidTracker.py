@@ -285,7 +285,22 @@ def create_counties_query(config_dict):
             counties_pipe = {"$match": {"county": counties}}
         return counties_pipe
 
-
+def create_aggregation_query(config_dict):
+    agg_level = config_dict["aggreation"]
+    if agg_level == "usa":
+        #no filter
+        #group all observations into 1 result
+    if agg_level == "fiftyStates":
+        #filter to only 50 states + DC 
+        #exclude 'American Samoa': 'AS','Guam': 'GU', 'Northern Mariana Islands':'MP', 'Puerto Rico': 'PR', 'Virgin Islands': 'VI'
+        excluded_areas = ['AS', 'GU', 'MP', 'PR', 'VI']
+        states_pipe = {"$match": {"state": {"$nin": excluded_areas}}}
+    elif agg_level == "state":
+        #filter will be hanled by state target query
+        #group by state
+    elif agg_level == "county":
+        #filter will be handled by counties query
+        #group by state, fips
 
 if __name__ == "__main__":
 	main()
