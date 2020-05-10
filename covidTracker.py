@@ -302,6 +302,32 @@ def create_aggregation_query(config_dict):
         #filter will be handled by counties query
         #group by state, fips
 
+def task_manager(config_dict):
+    # approach: break down task field into number of pipelines and outputs
+    num_tasks = len(config_dict['analysis'])
+    '''
+    similar to case/switch. these subfunctions will be used by calling task(job). For example
+    take a task to be {'ratio': {'numerator': 'death', 'denominator': 'positive'}}}. Then when we call the function
+    of the task's key name ie. ratio(task), it would call the ratio() function and would return the appropriate
+    query. Things might get weird depending on aggregration. 
+    '''
+
+    def ratio(task):
+        numerator = "$"+task['ratio']['numerator']
+        denominator = "$"+task['ratio']['denominator']
+        pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
+        return pipe
+    def track(task):
+        return
+    def stats(task):
+        return
+
+    for job in config_dict['analysis']:
+        pipe = {}
+        
+        task = list(job['task'].keys())[0]
+
+
 if __name__ == "__main__":
 	main()
 
