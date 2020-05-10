@@ -104,7 +104,6 @@ def load_daily():
     resp = requests.get(api_url)
     if resp.status_code == 200:
         daily_json = json.loads(resp.content.decode('utf-8'))
-        #daily_json = reformat_daily_dates(daily_json)
         return daily_json
     else:
         print("Failed to reach covid daily endpoint, please try again soon.")
@@ -124,7 +123,7 @@ def state_code(state):
     return us_state_abbrev[state]
 
 def load_states():
-    api_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
+    api_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
     response = requests.get(api_url)
     if response.status_code != 200:
         print("Failed to reach states endpoint, please try again soon")
@@ -183,15 +182,6 @@ def read_files(auth_file, config_file):
         return
     return auth_dict, config_dict
 
-def main():
-    auth_file, config_file = parse_command_line(sys.argv[1:])
-    print("returned from command line parse")
-    auth_dict, config_dict = read_files(auth_file, config_file)
-    print("returned from reading files")
-    mongo_client = connect_client(auth_dict)
-    refresh_collection(auth_dict, config_dict, mongo_client)
-    task_manager(auth_dict['db'], mongo_client, config_dict)
-
 def refresh_collection(auth_dict, config_dict, mongo_client):
     json = None
     collection = config_dict["collection"]
@@ -202,7 +192,6 @@ def refresh_collection(auth_dict, config_dict, mongo_client):
             json = load_states()
     if json != None:
         update_collection(mongo_client, auth_dict['db'], collection, json)
-
 
 def parse_json_file(filename):
     with open(filename) as json_file:
@@ -265,7 +254,6 @@ def create_target_query(config_dict):
 
 def create_counties_query(config_dict):
     #filter only applicable to states collection
-    
     if config_dict['collection'] != 'states':
         return
     else:
@@ -276,8 +264,6 @@ def create_counties_query(config_dict):
         else:
             counties_pipe = {"$match": {"county": counties}}
         return counties_pipe
-
-def create_aggregation_query(config_dict):
 
 def create_aggregation_query(config_dict, task):
     agg_level = config_dict["aggreation"]
@@ -297,15 +283,20 @@ def create_aggregation_query(config_dict, task):
     elif agg_level == "county":
         #filter will be handled by counties query
         #group by state, fips
-def task_manager(config_dict):
-=======
         pass
 
 def task_manager(database, client, config_dict):
     # approach: break down task field into number of pipelines and outputs
+    # establish number of tasks
     num_tasks = len(config_dict['analysis'])
+    
+    # config database and collection
     db = client[database]
     collection = db[config_dict['collection']]
+
+    # build generic pipeline based on filters
+    pipeline = pipeline_generator(config_dict)
+
     '''
     similar to case/switch. these subfunctions will be used by calling task(job). For example
     take a task to be {'ratio': {'numerator': 'death', 'denominator': 'positive'}}}. Then when we call the function
@@ -318,11 +309,14 @@ def task_manager(database, client, config_dict):
         denominator = "$"+task['ratio']['denominator']
         pipe = {"$project": {"_id": 0,"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
         project_pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
+        pipe = {"$project": {"date": 1, "ratio": {"$divide": [numerator,denominator]}}}
         return pipe
+    
     def track(task):
         field = task['track']
         pipe = {"$project": {"_id": 0, field: 1, "date": 1}}
         return pipe
+
     def stats(task):
         # depends on aggregation level but would require a group operation with avg and std aggregate functions.
         return
@@ -336,8 +330,24 @@ def task_manager(database, client, config_dict):
         pipeline = pipeline_generator(config_dict)
         print(pipeline)
         pprint.pprint(list(collection.aggregate(pipeline)))
+
         task = list(job['task'].keys())[0]
 
+def main():
+    # parse command line for files
+    auth_file, config_file = parse_command_line(sys.argv[1:])
+    
+    # read config and auth files
+    auth_dict, config_dict = read_files(auth_file, config_file)
+    
+    # establish mongo connection
+    mongo_client = connect_client(auth_dict)
+    
+    #refresh collections (if necessary)
+    refresh_collection(auth_dict, config_dict, mongo_client)
+    
+    #perform all the tasks in the config doc
+    task_manager(auth_dict['db'], mongo_client, config_dict)
 
 if __name__ == "__main__":
 	main()
