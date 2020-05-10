@@ -14,6 +14,66 @@ from datetime import datetime, timedelta
 from bson.son import SON
 import pprint
 
+# Dictionary taken from https://gist.github.com/rogerallen/1583593
+us_state_abbrev = {
+    'Alabama': 'AL',
+    'Alaska': 'AK',
+    'American Samoa': 'AS',
+    'Arizona': 'AZ',
+    'Arkansas': 'AR',
+    'California': 'CA',
+    'Colorado': 'CO',
+    'Connecticut': 'CT',
+    'Delaware': 'DE',
+    'District of Columbia': 'DC',
+    'Florida': 'FL',
+    'Georgia': 'GA',
+    'Guam': 'GU',
+    'Hawaii': 'HI',
+    'Idaho': 'ID',
+    'Illinois': 'IL',
+    'Indiana': 'IN',
+    'Iowa': 'IA',
+    'Kansas': 'KS',
+    'Kentucky': 'KY',
+    'Louisiana': 'LA',
+    'Maine': 'ME',
+    'Maryland': 'MD',
+    'Massachusetts': 'MA',
+    'Michigan': 'MI',
+    'Minnesota': 'MN',
+    'Mississippi': 'MS',
+    'Missouri': 'MO',
+    'Montana': 'MT',
+    'Nebraska': 'NE',
+    'Nevada': 'NV',
+    'New Hampshire': 'NH',
+    'New Jersey': 'NJ',
+    'New Mexico': 'NM',
+    'New York': 'NY',
+    'North Carolina': 'NC',
+    'North Dakota': 'ND',
+    'Northern Mariana Islands':'MP',
+    'Ohio': 'OH',
+    'Oklahoma': 'OK',
+    'Oregon': 'OR',
+    'Pennsylvania': 'PA',
+    'Puerto Rico': 'PR',
+    'Rhode Island': 'RI',
+    'South Carolina': 'SC',
+    'South Dakota': 'SD',
+    'Tennessee': 'TN',
+    'Texas': 'TX',
+    'Utah': 'UT',
+    'Vermont': 'VT',
+    'Virgin Islands': 'VI',
+    'Virginia': 'VA',
+    'Washington': 'WA',
+    'West Virginia': 'WV',
+    'Wisconsin': 'WI',
+    'Wyoming': 'WY'
+}
+
 def connect_client(auth_dict):
     if 'server' in auth_dict.keys():
         server = auth_dict['server'] + ":27017"
@@ -59,6 +119,8 @@ def reformat_daily_dates(json):
         doc["date"] = int(reformatted_date)
     return json
 
+def state_code(state):
+    return us_state_abbrev[state]
 
 def load_states():
     api_url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv"
@@ -70,6 +132,7 @@ def load_states():
     df = pd.DataFrame([x.split(',') for x in csv_resp.split('\n')])
     df.columns = df.iloc[0]
     df.drop(0, inplace=True)
+    df["state"] = df["state"].apply(lambda s: state_code(s))
     df["date"] = df["date"].apply(lambda d: reformat_date_states(d))
     df["fips"] = pd.to_numeric(df["fips"])
     df["cases"] = pd.to_numeric(df["cases"])
@@ -125,15 +188,16 @@ def main():
     auth_dict, config_dict = read_files(auth_file, config_file)
     print("returned from reading files")
     mongo_client = connect_client(auth_dict)
-    refresh_collection(config_dict, mongo_client)
+    refresh_collection(auth_dict, config_dict, mongo_client)
     #query_generator(auth_dict['db'], mongo_client, config_dict)
 
-def refresh_collection(config_dict, mongo_client):
+def refresh_collection(auth_dict, config_dict, mongo_client):
+    json = None
     collection = config_dict["collection"]
     if config_dict["refresh"] == True:
-        if config_dict["collection"] == "covid":
+        if collection == "covid":
             json = load_daily()
-        if config_dict["collection"] == "states":
+        if collection == "states":
             json = load_states()
     if json != None:
         update_collection(mongo_client, auth_dict['db'], collection, json)
@@ -145,26 +209,28 @@ def parse_json_file(filename):
     print(data)
     return data
 
-def query_generator(database, client, config_dict):
+def pipeline_generator(database, client, config_dict):
     db = client[database]
     #whether to refresh collection
     if config_dict['refresh']:
         print("Call function to refresh collections")
-    #get today's date formatted in YYYYMMDD
+    collection = db[config_dict['collection']]
+    agg_pipeline = []
+    time_pipe = create_time_query(config_dict)
+
+    agg_pipeline.append(time_pipe)
+    #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
+    #pprint.pprint(list(result))
+    pprint.pprint(list(collection.aggregate(agg_pipeline)))
+
+def create_time_query(config_dict):
+    time = config_dict['time']
     today = int(datetime.now().strftime("%Y%m%d"))
     yesterday = int((datetime.now() - timedelta(days = 1)).strftime("%Y%m%d"))
     #finds date exactly 1 week before today
     week = int((datetime.now() - timedelta(days = 7)).strftime("%Y%m%d"))
     month = int(str(today)[:6] + "01")
-    #print(month)
-    #print(today,yesterday)
-    #print(int(today))
-
-    collection = db[config_dict['collection']]
-    time = config_dict['time']
-    agg_pipeline = []
-    print(collection)
-    time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}}, 
+    time_dict = {'today': {"$match": {"date": today}}, 'yesterday': {"$match": {"date": yesterday}},
         'week': {"$match": {"date": {"$gte": week, "$lte": today}}}, 'month': {"$month": {"date": {"$gte": month,"$lte": today}}}}
     time_pipe = {}
     #creates time match pipe
@@ -174,15 +240,8 @@ def query_generator(database, client, config_dict):
         start = time['start']
         end = time['end']
         time_pipe = {"$match": {"date": {"$gte": start, "$lte": end}}}
-    
-    print(time_pipe) 
-    agg_pipeline.append(time_pipe)
-    #result= db.command('aggregate','covid', pipeline= agg_pipeline, explain= True)
-    #pprint.pprint(list(result))
-    pprint.pprint(list(db.covid.aggregate(agg_pipeline)))
 
-
-
+    return time_pipe
 if __name__ == "__main__":
 	main()
 
