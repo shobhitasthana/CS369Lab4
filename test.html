@@ -1,0 +1,305 @@
+{'server': 'localhost', 'username': 'robot19', 'password': 'changeme', 'authDB': 'csc369robots', 'db': 'robot19'}
+{'refresh': True, 'collection': 'covid', 'aggregation': 'state', 'target': 'CA', 'analysis': [{'task': {'track': 'death'}, 'output': {'table': {'row': 'state', 'column': 'time', 'title': 'COVID deaths in California over time'}}}]}
+server_verified
+mongodb://robot19:changeme@localhost:27017/csc369robots
+database authenticated
+[{'$match': {'state': 'CA'}},
+ {'$project': {'_id': 0, 'date': 1, 'death': 1}},
+ {'$sort': {'date': 1, 'state': 1}}]
+{'row': 'state', 'column': 'time', 'title': 'COVID deaths in California over time'}
+              date   death
+0   March 04, 2020     0.0
+1   March 05, 2020     0.0
+2   March 06, 2020     0.0
+3   March 07, 2020     0.0
+4   March 08, 2020     0.0
+..             ...     ...
+63    May 06, 2020  2412.0
+64    May 07, 2020  2504.0
+65    May 08, 2020  2585.0
+66    May 09, 2020  2678.0
+67    May 10, 2020  2745.0
+
+[68 rows x 2 columns]
+<h3>COVID deaths in California over time</h3><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>date</th>
+      <th>death</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>March 04, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 05, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 06, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 07, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 08, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 09, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 10, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 11, 2020</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <td>March 12, 2020</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <td>March 13, 2020</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <td>March 14, 2020</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <td>March 15, 2020</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <td>March 16, 2020</td>
+      <td>6.0</td>
+    </tr>
+    <tr>
+      <td>March 17, 2020</td>
+      <td>11.0</td>
+    </tr>
+    <tr>
+      <td>March 18, 2020</td>
+      <td>13.0</td>
+    </tr>
+    <tr>
+      <td>March 19, 2020</td>
+      <td>18.0</td>
+    </tr>
+    <tr>
+      <td>March 20, 2020</td>
+      <td>20.0</td>
+    </tr>
+    <tr>
+      <td>March 21, 2020</td>
+      <td>24.0</td>
+    </tr>
+    <tr>
+      <td>March 22, 2020</td>
+      <td>27.0</td>
+    </tr>
+    <tr>
+      <td>March 23, 2020</td>
+      <td>27.0</td>
+    </tr>
+    <tr>
+      <td>March 24, 2020</td>
+      <td>40.0</td>
+    </tr>
+    <tr>
+      <td>March 25, 2020</td>
+      <td>53.0</td>
+    </tr>
+    <tr>
+      <td>March 26, 2020</td>
+      <td>65.0</td>
+    </tr>
+    <tr>
+      <td>March 27, 2020</td>
+      <td>78.0</td>
+    </tr>
+    <tr>
+      <td>March 28, 2020</td>
+      <td>101.0</td>
+    </tr>
+    <tr>
+      <td>March 29, 2020</td>
+      <td>123.0</td>
+    </tr>
+    <tr>
+      <td>March 30, 2020</td>
+      <td>133.0</td>
+    </tr>
+    <tr>
+      <td>March 31, 2020</td>
+      <td>153.0</td>
+    </tr>
+    <tr>
+      <td>April 01, 2020</td>
+      <td>171.0</td>
+    </tr>
+    <tr>
+      <td>April 02, 2020</td>
+      <td>203.0</td>
+    </tr>
+    <tr>
+      <td>April 03, 2020</td>
+      <td>237.0</td>
+    </tr>
+    <tr>
+      <td>April 04, 2020</td>
+      <td>276.0</td>
+    </tr>
+    <tr>
+      <td>April 05, 2020</td>
+      <td>319.0</td>
+    </tr>
+    <tr>
+      <td>April 06, 2020</td>
+      <td>343.0</td>
+    </tr>
+    <tr>
+      <td>April 07, 2020</td>
+      <td>374.0</td>
+    </tr>
+    <tr>
+      <td>April 08, 2020</td>
+      <td>442.0</td>
+    </tr>
+    <tr>
+      <td>April 09, 2020</td>
+      <td>492.0</td>
+    </tr>
+    <tr>
+      <td>April 10, 2020</td>
+      <td>541.0</td>
+    </tr>
+    <tr>
+      <td>April 11, 2020</td>
+      <td>609.0</td>
+    </tr>
+    <tr>
+      <td>April 12, 2020</td>
+      <td>651.0</td>
+    </tr>
+    <tr>
+      <td>April 13, 2020</td>
+      <td>687.0</td>
+    </tr>
+    <tr>
+      <td>April 14, 2020</td>
+      <td>758.0</td>
+    </tr>
+    <tr>
+      <td>April 15, 2020</td>
+      <td>821.0</td>
+    </tr>
+    <tr>
+      <td>April 16, 2020</td>
+      <td>890.0</td>
+    </tr>
+    <tr>
+      <td>April 17, 2020</td>
+      <td>985.0</td>
+    </tr>
+    <tr>
+      <td>April 18, 2020</td>
+      <td>1072.0</td>
+    </tr>
+    <tr>
+      <td>April 19, 2020</td>
+      <td>1166.0</td>
+    </tr>
+    <tr>
+      <td>April 20, 2020</td>
+      <td>1208.0</td>
+    </tr>
+    <tr>
+      <td>April 21, 2020</td>
+      <td>1268.0</td>
+    </tr>
+    <tr>
+      <td>April 22, 2020</td>
+      <td>1354.0</td>
+    </tr>
+    <tr>
+      <td>April 23, 2020</td>
+      <td>1469.0</td>
+    </tr>
+    <tr>
+      <td>April 24, 2020</td>
+      <td>1562.0</td>
+    </tr>
+    <tr>
+      <td>April 25, 2020</td>
+      <td>1651.0</td>
+    </tr>
+    <tr>
+      <td>April 26, 2020</td>
+      <td>1710.0</td>
+    </tr>
+    <tr>
+      <td>April 27, 2020</td>
+      <td>1755.0</td>
+    </tr>
+    <tr>
+      <td>April 28, 2020</td>
+      <td>1809.0</td>
+    </tr>
+    <tr>
+      <td>April 29, 2020</td>
+      <td>1887.0</td>
+    </tr>
+    <tr>
+      <td>April 30, 2020</td>
+      <td>1982.0</td>
+    </tr>
+    <tr>
+      <td>May 01, 2020</td>
+      <td>2073.0</td>
+    </tr>
+    <tr>
+      <td>May 02, 2020</td>
+      <td>2171.0</td>
+    </tr>
+    <tr>
+      <td>May 03, 2020</td>
+      <td>2215.0</td>
+    </tr>
+    <tr>
+      <td>May 04, 2020</td>
+      <td>2254.0</td>
+    </tr>
+    <tr>
+      <td>May 05, 2020</td>
+      <td>2317.0</td>
+    </tr>
+    <tr>
+      <td>May 06, 2020</td>
+      <td>2412.0</td>
+    </tr>
+    <tr>
+      <td>May 07, 2020</td>
+      <td>2504.0</td>
+    </tr>
+    <tr>
+      <td>May 08, 2020</td>
+      <td>2585.0</td>
+    </tr>
+    <tr>
+      <td>May 09, 2020</td>
+      <td>2678.0</td>
+    </tr>
+    <tr>
+      <td>May 10, 2020</td>
+      <td>2745.0</td>
+    </tr>
+  </tbody>
+</table>
