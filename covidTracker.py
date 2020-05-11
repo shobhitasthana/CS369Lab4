@@ -273,9 +273,9 @@ def create_aggregation_query(config_dict, field, task):
     agg_level = config_dict["aggregation"]
     if agg_level == "usa" or agg_level == "fiftyStates":
         if task == "track":
-            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}}}, {"$sort": {"date":1}}]
+            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}}}, {"$sort": {"date":1}}, {"$project": {"date": "$_id","_id":0, field[0]: 1}}]
         if task == "ratio":
-            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}, field[1]: {"$sum": "$"+field[1]}}}]
+            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}, field[1]: {"$sum": "$"+field[1]}}}, {"$project": {"date": "$_id","_id":0, field[0]: 1, field[1]:1}}]
         if task == "stats":
             group_pipeline = {}
             for f in field:
@@ -363,7 +363,7 @@ def task_manager(database, client, config_dict):
             output_grapher(df, output_dict['graph'])
         elif 'table' in output_dict.keys():
             output_table(df, output_dict['table'])
-
+        print(df)
         pprint.pprint(data)
 
 def output_grapher(data,output):
@@ -378,7 +378,20 @@ def output_grapher(data,output):
         title = output['title']
     else:
         title = ''
-    #data.plot(
+    if 'dateArray' in data.columns:
+        date = data['dateArray'].iloc[0]
+        print(date)
+        ratio = data['ratioArray'].iloc[0]
+        plt.plot(date,ratio)
+        #plt.set_title(title)
+        plt.savefig(title+'.png')
+        return
+    if graph_type == 'line':
+        
+        data.plot(x = 'date',kind = graph_type, legend = False, title = title)
+    plt.show()
+    plt.savefig('test.png')
+    print(data.plot(kind = graph_type, legend = False, title = title))
     return
 def output_table(data, output):
     print(output)
