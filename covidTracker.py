@@ -93,7 +93,6 @@ map_month = {
 def connect_client(auth_dict):
     if 'server' in auth_dict.keys():
         server = auth_dict['server'] + ":27017"
-        print("server_verified")
     else:
         server = 'localhost:27017'
         
@@ -107,12 +106,10 @@ def connect_client(auth_dict):
     authdb = auth_dict['authDB']
     db = auth_dict['db']
     uri = 'mongodb://'+user+":"+password+"@"+server+"/"+authdb
-    print(str(uri))
     uri = str(uri)
     #uri = 'mongodb://robot19:changeme@localhost:27017/csc369robots'
     client = MongoClient(uri)
     #client = MongoClient(server, username=user, password=password, authSource=authdb, authMechanism='SCRAM-SHA-1')
-    print("database authenticated")
     return client
 
 def load_daily():
@@ -164,7 +161,10 @@ def reformat_date_states(date):
 def map_int_to_date(int):
     date_str = str(int)
     day = date_str[-2:]
-    month = map_month[date_str[-4:-2]]
+    try:
+        month = map_month[date_str[-4:-2]]
+    except:
+        return date_str
     year = date_str[:-4]
     if len(year) < 4:
         year = "20" + year
@@ -221,7 +221,6 @@ def refresh_collection(auth_dict, config_dict, mongo_client):
 def parse_json_file(filename):
     with open(filename) as json_file:
         data = json.load(json_file)
-    print(data)
     return data
 
 def pipeline_generator(config_dict):
@@ -372,58 +371,85 @@ def task_manager(database, client, config_dict):
         return group
 
     task_dict = {'ratio': ratio, 'track': track, 'stats': stats}
+    html = ""
     for job in config_dict['analysis']:
         task_name = list(job['task'].keys())[0]
         # call task subfunctions
         pipe = task_dict[task_name](job['task'])
         task = list(job['task'].keys())[0]
         query = pipeline + pipe
-        pprint.pprint(query)
         data = list(collection.aggregate(query))
         df = pd.DataFrame(data)
         output_dict = job['output']
-
-        if 'graph' in output_dict.keys():
-            output_grapher(df, output_dict['graph'])
-        if 'table' in output_dict.keys():
-            print(output_table(df, output_dict['table']))
-        print(df)
-        pprint.pprint(data)
+        if len(data) == 0:
+            html += "<h6>No data to display.</h6>"
+        else:
+            if 'graph' in output_dict.keys():
+                html = html + output_grapher(df, output_dict['graph'])
+            if 'table' in output_dict.keys():
+                html = html + output_table(df, output_dict['table'])
+    
+    return html
 
 def output_grapher(data,output):
-    print(output)
     graph_type = output['type']
+    html = ""
     if 'legend' in output.keys():
-        legend = output['legend']
+        legend = True if output['legend'] == "on" else False
     else:
-        legend = 'off'
+        legend = False
     combo = output['combo']
     if 'title' in output.keys():
         title = output['title']
     else:
-        title = ''
+        title = 'NoTitleGiven'
     if 'dateArray' in data.columns:
         date = data['dateArray'].iloc[0]
-        print(date)
         ratio = data['ratioArray'].iloc[0]
         df_dict = {'date': date, 'ratio': ratio}
         df = pd.DataFrame(df_dict)
-        df.plot(x = 'date', kind = graph_type, legend = False, title = title)
-        #plt.set_title(title)
+        df.plot(x = 'date', kind = graph_type, legend = legend, title = title)
         plt.savefig(title+'.png')
-        return
-    if graph_type == 'line':
-        
-        data.plot(x = 'date',kind = graph_type, legend = False, title = title)
-    plt.show()
-    plt.savefig('test.png')
-    print(data.plot(kind = graph_type, legend = False, title = title))
-    return
+        html += "<img src=" + title + ".png>"
+        return html
+   # if graph_type == 'line':
+    #    data.plot(x = 'date',kind = graph_type, legend = False, title = title)
+    if combo == "seperate":
+        if "state" in data.columns:
+            unique_states = list(data["state"].unique())
+            for state in unique_states:
+                graph_df = data[data["state"] == state]
+                graph_df.plot(kind = graph_type, legend = legend, title=title)
+                plt.savefig(title + state + ".png")
+                html += "<img src=" + title + state + ".png>"
+        if "county" in data.columns:
+            unique_counties = list(data["county"].unique())
+            for county in unique_counties:
+                graph_df = data[data["county"] == county]
+                graph_df.plot(kind = graph_type, legend = legend, title=title)
+                plt.savefig(title + county + ".png")
+                html += "<img src=" + title + county + ".png>"
+    elif combo == "split":
+        if "state" in data.columns:
+            data.plot(kind=graph_type, legend=legend, title=title, color="state") 
+        if "county" in data.columns:
+            data.plot(kind=graph_type, legend=legend, title=title, color="county")
+    else:
+        data.plot(kind=graph_type, legend=legend, title=title)
+        plt.savefig(title + ".png")
+        html += "<img src=" + title + ".png>"
+    
+    return html
 
 
 def output_table(data, output):
     data.fillna(0, inplace=True)
     title = output["title"] if "title" in output.keys() else ""
+    if 'dateArray' in data.columns:
+        date = data['dateArray'].iloc[0]
+        ratio = data['ratioArray'].iloc[0]
+        df_dict = {'date': date, 'ratio': ratio}
+        data = pd.DataFrame(df_dict)
     if "_id" in data.columns:
         if str(data.iloc[0]["_id"]).isnumeric():
             data.rename(columns={'_id':'date'}, inplace=True)
@@ -431,8 +457,6 @@ def output_table(data, output):
             data.rename(columns={'_id':'state'}, inplace=True)
     if "date" in data.columns:
         data["date"] = data["date"].apply(lambda d: map_int_to_date(d))
-    print(output)
-    print(data)
     html = generate_table_html(data, title)
     return html
 
@@ -440,6 +464,15 @@ def generate_table_html(df, table_title):
     title = "<h3>" + table_title + "</h3>"
     table = df.to_html(index=False)
     return title+table
+
+def write_html(html, config, config_dict):
+    if "output" in config_dict.keys():
+        file_name = config_dict["output"]
+    else:
+        file_name = config.split(".")[0] + "out" + ".html"
+    with open(file_name, 'w') as f:
+        f.write(html)
+    f.close()
 
 def main():
     # parse command line for files
@@ -455,7 +488,10 @@ def main():
     refresh_collection(auth_dict, config_dict, mongo_client)
     
     #perform all the tasks in the config doc
-    task_manager(auth_dict['db'], mongo_client, config_dict)
+    out_html = task_manager(auth_dict['db'], mongo_client, config_dict)
+    
+    #write html to file
+    write_html(out_html, config_file, config_dict)
 
 if __name__ == "__main__":
 	main()
