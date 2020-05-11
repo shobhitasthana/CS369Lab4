@@ -382,7 +382,9 @@ def output_grapher(data,output):
         date = data['dateArray'].iloc[0]
         print(date)
         ratio = data['ratioArray'].iloc[0]
-        plt.plot(date,ratio)
+        df_dict = {'date': date, 'ratio': ratio}
+        df = pd.DataFrame(df_dict)
+        df.plot(x = 'date', kind = graph_type, legend = False, title = title)
         #plt.set_title(title)
         plt.savefig(title+'.png')
         return
