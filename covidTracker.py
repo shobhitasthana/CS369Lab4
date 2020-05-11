@@ -238,6 +238,9 @@ def create_time_query(config_dict):
 def create_target_query(config_dict):
     #states collection will only contain a single state abbreviation
     target_pipe = {}
+    if config_dict["aggregation"] == 'fiftystates':
+        excluded_areas = ['AS', 'GU', 'MP', 'PR', 'VI']
+        target_pipe = {"$match": {"state": {"$nin": excluded_areas}}}
     state = config_dict['target']
     if config_dict['collection'] == 'states':
         
@@ -267,32 +270,41 @@ def create_counties_query(config_dict):
 
 def create_aggregation_query(config_dict, field, task):
     agg_level = config_dict["aggregation"]
-    if agg_level == "usa":
-        #no filter
-        #group all observations into 1 result
+    if agg_level == "usa" or agg_level == "fiftyStates":
         if task == "track":
-            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}}}]
+            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}}}, {"$sort": {"date":1}}]
         if task == "ratio":
             pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}, field[1]: {"$sum": "$"+field[1]}}}]
-    if agg_level == "fiftyStates":
-        #filter to only 50 states + DC 
-        #exclude 'American Samoa': 'AS','Guam': 'GU', 'Northern Mariana Islands':'MP', 'Puerto Rico': 'PR', 'Virgin Islands': 'VI'
-        excluded_areas = ['AS', 'GU', 'MP', 'PR', 'VI']
-        states_pipe = {"$match": {"state": {"$nin": excluded_areas}}}
-        if task == "track":
-            group_pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}}}]
-        if task == "ratio":
-            pipeline = [{"$group": {"_id":"$date", field[0]: {"$sum": "$"+field[0]}, field[1]: {"$sum": "$"+field[1]}}}]
-        pipeline = [states_pipe, group_pipeline]
+        if task == "stats":
+            group_pipeline = {}
+            for f in field:
+                stat_pipe = {"avg"+f: {"$avg": "$"+f}, "std"+f: {"$stdDevPop": "$"+f}}
+                group_pipeline.update(stat_pipe)
+            pipeline = [{"$project": group_pipeline}]    
     elif agg_level == "state":
-        #filter will be hanled by state target query
-        #group by state
-        if task == "ratio" or task == "track":
-            pipeline = []
+        if task == "track":
+            if "counties" in config_dict.keys():
+                pipeline = [{"$sort": {"date":1, "county":1}}]
+            pipeline = [{"$sort": {"date":1, "state":1}}]
+        if task == "ratio":
+            pipeline = [{"$sort": {"date":1}}, {"$group": {"_id":"state","dateArray": {"$push":"$date"},"ratioArray": {"$push": "$ratio"}}}]
+        if task == "stats":
+            group_pipeline = {"_id":"$state"}
+            for f in field:
+                stat_pipe = {"avg"+f: {"$avg": "$"+f}, "std"+f: {"$stdDevPop": "$"+f}}
+                group_pipeline.update(stat_pipe)
+            pipeline = [{"$group": group_pipeline}, {"$sort": {"state":1}}]
     elif agg_level == "county":
-        #filter will be handled by counties query
-        #group by state, fips
-        pass
+        if task == "track":
+            pipeline = [{"$sort": {"date":1}}]
+        if task == "ratio":
+            pipeline = [{"$sort": {"date":1}}, {"$group": {"_id":"county","dateArray": {"$push":"$date"},"ratioArray": {"$push": "$ratio"}}}]
+        if task == "stats":
+            group_pipeline = {"_id":"$county"}
+            for f in field:
+                stat_pipe = {"avg"+f: {"$avg": "$"+f}, "std"+f: {"$stdDevPop": "$"+f}}
+                group_pipeline.update(stat_pipe)
+            pipeline = [{"$group": group_pipeline}, {"$sort": {"county":1}}]
     return pipeline
 
 def task_manager(database, client, config_dict):
@@ -306,7 +318,6 @@ def task_manager(database, client, config_dict):
 
     # build generic pipeline based on filters
     pipeline = pipeline_generator(config_dict)
-    print(pipeline)
     '''
     similar to case/switch. these subfunctions will be used by calling task(job). For example
     take a task to be {'ratio': {'numerator': 'death', 'denominator': 'positive'}}}. Then when we call the function
@@ -326,15 +337,14 @@ def task_manager(database, client, config_dict):
         if "counties" in config_dict.keys():
             return [{"$project": {"_id": 0, field: 1, "date": 1, "county":1}}]
         pipe = [{"$project": {"_id": 0, field: 1, "date": 1}}]
-        group = create_aggregation_query(config_dict, [field], "track")
-        print(pipe)
-        print(group)
-        return pipe + group
+        sort = create_aggregation_query(config_dict, [field], "track")
+        return pipe + sort
 
     def stats(task):
         # depends on aggregation level but would require a group operation with avg and std aggregate functions.
-        field = config_dict["aggregation"]
-        return
+        fields = task["stats"]
+        group = create_aggregation_query(config_dict, fields, "stats")
+        return group
 
     task_dict = {'ratio': ratio, 'track': track, 'stats': stats}
     for job in config_dict['analysis']:
@@ -342,7 +352,10 @@ def task_manager(database, client, config_dict):
         # call task subfunctions
         pipe = task_dict[task_name](job['task'])
         task = list(job['task'].keys())[0]
-        print(pipeline + pipe) 
+        query = pipeline + pipe
+        pprint.pprint(query)
+        data = list(collection.aggregate(query))
+        pprint.pprint(data)
 
 def main():
     # parse command line for files
