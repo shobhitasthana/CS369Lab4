@@ -330,7 +330,7 @@ def task_manager(database, client, config_dict):
         denominator = task['ratio']['denominator']
         agg = create_aggregation_query(config_dict, [numerator, denominator], "ratio")
         pipe = [{"$project": {"_id": 0,"date": 1, "ratio": {"$divide": ["$"+numerator,"$"+denominator]}}}]
-        return agg + pipe
+        return  pipe+ agg
     
     def track(task):
         field = task['track']
@@ -356,6 +356,10 @@ def task_manager(database, client, config_dict):
         pprint.pprint(query)
         data = list(collection.aggregate(query))
         pprint.pprint(data)
+
+def output_grapher(data,g_type, legend, combo, title):
+    pass
+
 
 def main():
     # parse command line for files
