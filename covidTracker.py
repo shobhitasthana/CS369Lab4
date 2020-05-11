@@ -75,6 +75,21 @@ us_state_abbrev = {
     'Wyoming': 'WY'
 }
 
+map_month = {
+    '01':'January',
+    '02':'February',
+    '03':'March',
+    '04':'April',
+    '05':'May',
+    '06':'June',
+    '07':'July',
+    '08':'August',
+    '09':'September',
+    '10':'October',
+    '11':'November',
+    '12':'December'
+}
+
 def connect_client(auth_dict):
     if 'server' in auth_dict.keys():
         server = auth_dict['server'] + ":27017"
@@ -145,6 +160,15 @@ def reformat_date_states(date):
     year, month, day = date.split("-")
     date = year[2:] + month + day
     return int(date)
+
+def map_int_to_date(int):
+    date_str = str(int)
+    day = date_str[-2:]
+    month = map_month[date_str[-4:-2]]
+    year = date_str[:-4]
+    if len(year) < 4:
+        year = "20" + year
+    return month + " " + day + ", " + year
 
 def update_collection(client, database, collection, json):
     db = client[database]
@@ -361,10 +385,10 @@ def task_manager(database, client, config_dict):
 
         if 'graph' in output_dict.keys():
             output_grapher(df, output_dict['graph'])
-        elif 'table' in output_dict.keys():
-            output_table(df, output_dict['table'])
-
-        pprint.pprint(data)
+        if 'table' in output_dict.keys():
+            print(output_table(df, output_dict['table']))
+    
+        #pprint.pprint(data)
 
 def output_grapher(data,output):
     print(output)
@@ -380,9 +404,27 @@ def output_grapher(data,output):
         title = ''
     #data.plot(
     return
+
+
 def output_table(data, output):
+    data.fillna(0, inplace=True)
+    title = output["title"] if "title" in output.keys() else ""
+    if "_id" in data.columns:
+        if str(data.iloc[0]["_id"]).isnumeric():
+            data.rename(columns={'_id':'date'}, inplace=True)
+        else:
+            data.rename(columns={'_id':'state'}, inplace=True)
+    if "date" in data.columns:
+        data["date"] = data["date"].apply(lambda d: map_int_to_date(d))
     print(output)
-    return
+    print(data)
+    html = generate_table_html(data, title)
+    return html
+
+def generate_table_html(df, table_title):
+    title = "<h3>" + table_title + "</h3>"
+    table = df.to_html(index=False)
+    return title+table
 
 def main():
     # parse command line for files
