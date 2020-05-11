@@ -13,6 +13,7 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 from bson.son import SON
 import pprint
+import matplotlib.pyplot as plt
 
 # Dictionary taken from https://gist.github.com/rogerallen/1583593
 us_state_abbrev = {
@@ -355,11 +356,33 @@ def task_manager(database, client, config_dict):
         query = pipeline + pipe
         pprint.pprint(query)
         data = list(collection.aggregate(query))
+        df = pd.DataFrame(data)
+        output_dict = job['output']
+
+        if 'graph' in output_dict.keys():
+            output_grapher(df, output_dict['graph'])
+        elif 'table' in output_dict.keys():
+            output_table(df, output_dict['table'])
+
         pprint.pprint(data)
 
-def output_grapher(data,g_type, legend, combo, title):
-    pass
-
+def output_grapher(data,output):
+    print(output)
+    graph_type = output['type']
+    if 'legend' in output.keys():
+        legend = output['legend']
+    else:
+        legend = 'off'
+    combo = output['combo']
+    if 'title' in output.keys():
+        title = output['title']
+    else:
+        title = ''
+    #data.plot(
+    return
+def output_table(data, output):
+    print(output)
+    return
 
 def main():
     # parse command line for files
